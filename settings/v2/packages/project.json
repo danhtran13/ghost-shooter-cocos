@@ -1,0 +1,30 @@
+{
+  "__version__": "1.0.6",
+  "physics": {
+    "collisionGroups": [
+      {
+        "index": 1,
+        "name": "PLAYER"
+      },
+      {
+        "index": 2,
+        "name": "MONSTER"
+      },
+      {
+        "index": 3,
+        "name": "BULLET"
+      },
+      {
+        "index": 4,
+        "name": "RECOVER"
+      }
+    ],
+    "collisionMatrix": {
+      "0": 1,
+      "1": 20,
+      "2": 10,
+      "3": 4,
+      "4": 2
+    }
+  }
+}
