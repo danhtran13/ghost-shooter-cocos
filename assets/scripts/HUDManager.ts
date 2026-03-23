@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Label, director, ProgressBar, UIOpacity } from 'cc';
 import { PlayerController } from './PlayerController';
+import { GameController, GameState } from './GameController';
 const { ccclass, property } = _decorator;
 
 @ccclass('HUDManager')
@@ -75,7 +76,7 @@ export class HUDManager extends Component {
 
     update(deltaTime: number) {
         // Dùng trạng thái pause của director thay vì biến boolean
-        if (director.isPaused()) return; 
+        if (GameController.currentState !== GameState.PLAYING) return;
 
         // Tăng thời gian chơi lên mỗi frame
         this._playTime += deltaTime;

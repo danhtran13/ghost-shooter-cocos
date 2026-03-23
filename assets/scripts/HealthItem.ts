@@ -1,5 +1,6 @@
 import { _decorator, Component, Collider2D, Contact2DType, IPhysics2DContact, BoxCollider2D } from 'cc';
 import { PlayerController } from './PlayerController';
+import { Minimap } from './Minimap';
 const { ccclass, property } = _decorator;
 
 @ccclass('HealthItem')
@@ -16,6 +17,7 @@ export class HealthItem extends Component {
             collider.on(Contact2DType.BEGIN_CONTACT, this.onBeginContact, this);
             // console.log("✅ Đã thiết lập xong va chạm cho:", this.node.name);
         }
+        if (Minimap.instance) Minimap.instance.registerHealthItem(this.node);
     }
 
     onBeginContact(selfCollider: Collider2D, otherCollider: Collider2D, contact: IPhysics2DContact | null) {
@@ -27,7 +29,7 @@ export class HealthItem extends Component {
         // Giả sử Node của player chứa "player" trong tên (hoặc bạn có thể dùng Group)
         if (otherCollider.group === (1 << 1)) {
             // console.log("HealthItem đã chạm vào Player:", otherCollider.node.name);
-            
+
             // Lấy component PlayerController từ Node vừa chạm vào
             const playerScript = otherCollider.node.getComponent(PlayerController);
             if (playerScript && playerScript.isAlive) {

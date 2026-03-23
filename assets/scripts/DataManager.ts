@@ -40,7 +40,7 @@ export class DataManager extends Component {
             this.bestScore = parseInt(savedBestScore);
         }
 
-        console.log("Trạng thái âm thanh ban đầu:", this.isSoundOn ? "BẬT" : "TẮT");
+        // console.log("Trạng thái âm thanh ban đầu:", this.isSoundOn ? "BẬT" : "TẮT");
     }
 
     // Hàm dùng để gắn vào nút bấm trên Menu (ví dụ nút có hình cái Loa)
@@ -51,7 +51,7 @@ export class DataManager extends Component {
         // Lưu xuống bộ nhớ thiết bị ngay lập tức
         sys.localStorage.setItem('isSoundOn', this.isSoundOn ? 'true' : 'false');
         
-        console.log("Đã chuyển âm thanh thành:", this.isSoundOn ? "BẬT" : "TẮT");
+        // console.log("Đã chuyển âm thanh thành:", this.isSoundOn ? "BẬT" : "TẮT");
         
         // Lưu ý: Nếu bạn có nhạc nền (BGM) đang phát thì bạn có thể thêm logic 
         // Pause/Resume nhạc nền ngay tại đây luôn.
@@ -61,14 +61,14 @@ export class DataManager extends Component {
         if (newScore > this.bestScore) {
             this.bestScore = newScore;
             sys.localStorage.setItem('bestScore', newScore.toString());
-            console.log("Cập nhật điểm cao mới:", newScore);
+            // console.log("Cập nhật điểm cao mới:", newScore);
         }
     }
 
     public resetBestScore() {
         this.bestScore = 0;
         sys.localStorage.setItem('bestScore', '0');
-        console.log("Điểm cao đã được reset về 0.");
+        // console.log("Điểm cao đã được reset về 0.");
     }
 }
 

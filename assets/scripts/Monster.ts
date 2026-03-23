@@ -1,13 +1,13 @@
-import { _decorator, Component, Node, Vec3, math, Collider2D, Contact2DType, IPhysics2DContact, Prefab, director, instantiate } from 'cc';
+import { _decorator, Component, Node, Vec3, math, Collider2D, Contact2DType, IPhysics2DContact, Prefab, director, instantiate, find } from 'cc';
 import { PlayerController } from './PlayerController';
+import { Bullet } from './Bullet';
+import { Minimap } from './Minimap';
 const { ccclass, property } = _decorator;
+const RAD_TO_DEG = 180 / Math.PI;
 
 @ccclass('Monster')
 export class Monster extends Component {
     player: Node | null = null;
-
-    @property({ type: Prefab })
-    bullet: Prefab | null = null;
 
     @property({ type: Prefab, tooltip: 'Prefab hiệu ứng nổ (Explosion)' })
     explosionPrefab: Prefab | null = null;
@@ -35,9 +35,15 @@ export class Monster extends Component {
     private _velocity = new Vec3();
     private _isDead = false;
     private _speedUpTimer = 0;
+    // Tầm đánh là 250, ta tính sẵn bình phương của nó để so sánh
+    private attackRangeSqr: number = 220 * 220;
 
     start() {
         this._currentHealth = this.maxHealth;
+
+        if (!this.player) {
+            this.player = find("World/player"); // Sửa đường dẫn nếu Player của bạn nằm ở vị trí khác
+        }
 
         // Bắt sự kiện va chạm vật lý 2D (Bạn cần gắn Collider2D trên Editor cho Monster)
         const collider = this.getComponent(Collider2D);
@@ -48,7 +54,8 @@ export class Monster extends Component {
         // Khởi tạo ban đầu: Chọn một hướng ngẫu nhiên để di chuyển
         const randomAngle = math.randomRange(0, Math.PI * 2);
         this._velocity.set(Math.cos(randomAngle), Math.sin(randomAngle), 0);
-        this.node.setRotationFromEuler(0, 0, randomAngle * (180 / Math.PI));
+        this.node.setRotationFromEuler(0, 0, randomAngle * RAD_TO_DEG);
+        if (Minimap.instance) Minimap.instance.registerMonster(this.node);
     }
 
     update(deltaTime: number) {
@@ -66,10 +73,8 @@ export class Monster extends Component {
         // Nếu lại gần player trong khoảng cách 300 thì đổi góc về hướng player
         if (this.player) {
             const tPos = this.player.worldPosition;
-            const dx = tPos.x - pos.x;
-            const dy = tPos.y - pos.y;
-            // 300 * 300 = 90000 (Dùng bình phương khoảng cách để tối ưu hiệu năng)
-            if (dx * dx + dy * dy <= 30000) {
+            let distSqr = Vec3.squaredDistance(pos, tPos);
+            if (distSqr <= this.attackRangeSqr) {
                 this.recalculateDirection();
             }
         }
@@ -115,13 +120,15 @@ export class Monster extends Component {
         const dirX = targetPos.x - currentPos.x;
         const dirY = targetPos.y - currentPos.y;
 
-        const length = Math.sqrt(dirX * dirX + dirY * dirY);
-        if (length > 0) {
+        const distSqr = dirX * dirX + dirY * dirY;
+        if (distSqr > 0.0001) {
+            const length = Math.sqrt(distSqr);
+            const invLength = 1.0 / length;
             // Chuẩn hoá vector hướng (độ dài = 1)
-            this._velocity.set(dirX / length, dirY / length, 0);
+            this._velocity.set(dirX * invLength, dirY * invLength, 0);
 
             // Cập nhật góc nhìn của quái để mặt luôn quay về hướng di chuyển
-            const angle = Math.atan2(this._velocity.y, this._velocity.x) * (180 / Math.PI);
+            const angle = Math.atan2(this._velocity.y, this._velocity.x) * RAD_TO_DEG;
             // Đổi offset này tuỳ theo mặt ảnh quái vật của bạn đang hướng lên trên (-90) hay ngang
             this.node.setRotationFromEuler(0, 0, angle);
         }
@@ -134,15 +141,18 @@ export class Monster extends Component {
 
         // Nếu va chạm trúng Đạn (Cần đặt Group hoặc TAG bên Editor để phân biệt đạn, ví dụ: nhóm "Bullet")
         if (otherCollider.node.name.toLowerCase().includes("bullet")) {
-            console.log("=> Đây là đạn! Trừ máu quái và xoá đạn."); // DEBUG
-
-            this.takeDamage(1);
+            let bulletScript = otherCollider.node.getComponent(Bullet);
+            if (bulletScript) {
+                if (bulletScript.isHit) return;
+                bulletScript.isHit = true;
+                this.takeDamage(1);
+            }
 
             // Lên lịch xoá đạn (tránh lỗi vật lý trong cùng block frame)
             setTimeout(() => {
                 if (otherCollider.node && otherCollider.node.isValid) {
                     // Spawn hiệu ứng nổ tại vị trí viên đạn
-                    if (this.explosionPrefab) {
+                    if (this.explosionPrefab && this._currentHealth > 0) {
                         const explosionNode = instantiate(this.explosionPrefab);
                         const parentNode = this.node.parent || director.getScene();
                         if (parentNode) {
@@ -163,8 +173,6 @@ export class Monster extends Component {
                 playerScript.applyDamage(this.damageToPlayer);
                 playerScript.flashPlayer();
                 this.die();
-            } else {
-                console.warn("⚠️ Player không có component PlayerController!");
             }
         }
     }
