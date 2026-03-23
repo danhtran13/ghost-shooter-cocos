@@ -1,6 +1,7 @@
-import { _decorator, Component, Node, director, SpriteFrame, Button, Label } from 'cc';
+import { _decorator, Component, Node, director, SpriteFrame, Button, Label, game, Game } from 'cc';
 import { DataManager } from './DataManager';
 import { HUDManager } from './HUDManager';
+import { GameController, GameState } from './GameController';
 const { ccclass, property } = _decorator;
 
 @ccclass('MenuManager')
@@ -10,6 +11,9 @@ export class MenuManager extends Component {
 
     @property(Node)
     gameOverPanel: Node | null = null;
+
+    @property(Node)
+    gamePlayPanel: Node | null = null;
 
     @property(Button)
     soundButton: Button | null = null;
@@ -30,7 +34,11 @@ export class MenuManager extends Component {
     hudManager: HUDManager | null = null;
 
     start() {
-        // Vừa vào game là mở main menu ngay
+        if (GameController.isRestarting) {
+            GameController.isRestarting = false;
+            this.startGame();
+            return;
+        }
         this.showMainMenu();
 
         // Cập nhật hình ảnh nút âm thanh lúc mới vào game theo cài đặt đã lưu
@@ -49,20 +57,24 @@ export class MenuManager extends Component {
 
     showMainMenu() {
         if (this.mainMenuPanel) this.mainMenuPanel.active = true;
+        if (this.gamePlayPanel) this.gamePlayPanel.active = false;
         if (this.gameOverPanel) this.gameOverPanel.active = false;
-        director.pause();
+        GameController.currentState = GameState.MENU;
     }
 
     // Gắn hàm này vào nút PLAY
     startGame() {
         if (this.mainMenuPanel) this.mainMenuPanel.active = false;
+        if (this.gamePlayPanel) this.gamePlayPanel.active = true;
         if (this.gameOverPanel) this.gameOverPanel.active = false;
-        director.resume();
+        GameController.currentState = GameState.PLAYING;
     }
 
     showGameOver() {
         if (this.mainMenuPanel) this.mainMenuPanel.active = false;
+        if (this.gamePlayPanel) this.gamePlayPanel.active = false;
         if (this.gameOverPanel) this.gameOverPanel.active = true;
+        GameController.currentState = GameState.GAME_OVER;
 
         if (this.hudManager) {
             let finalScore = this.hudManager.currentScore;
@@ -92,18 +104,17 @@ export class MenuManager extends Component {
     restartGame() {
         director.resume();
         director.loadScene(director.getScene().name);
-        this.startGame(); 
+        GameController.isRestarting = true;
     }
 
     // Gắn hàm này vào nút HOME / MAIN MENU
     backToMainMenu() {
         director.resume();
         director.loadScene(director.getScene().name);
-        // Lưu ý: Do bạn gọi loadScene lại từ đầu, Game sẽ tự động load lại và gọi logic this.showMainMenu() bên trong hàm start().
     }
 
     updateSoundButtonUI() {
-        console.log("Cập nhật UI nút âm thanh. Sound đang:", DataManager.instance?.isSoundOn ? "Bật" : "Tắt");
+        // console.log("Cập nhật UI nút âm thanh. Sound đang:", DataManager.instance?.isSoundOn ? "Bật" : "Tắt");
         if (!this.soundButton || !DataManager.instance) return;
         
         // Đổi hình ảnh trên nút tuỳ thuộc vào trạng thái âm thanh từ DataManager
@@ -115,9 +126,9 @@ export class MenuManager extends Component {
     }
 
     onToggleSoundClicked() {
-        console.log("Nút âm thanh được bấm. Đang xử lý toggle...");
+        // console.log("Nút âm thanh được bấm. Đang xử lý toggle...");
         if (DataManager.instance) {
-            console.log("Nút âm thanh được bấm. Đang chuyển trạng thái...");
+            // console.log("Nút âm thanh được bấm. Đang chuyển trạng thái...");
             // Thay đổi trạng thái thực và lưu xuống hệ thống
             DataManager.instance.toggleSound();
             
@@ -143,5 +154,3 @@ export class MenuManager extends Component {
         }
     }
 }
-
-

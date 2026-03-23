@@ -1,26 +1,7 @@
-import {
-    _decorator,
-    Component,
-    Node,
-    input,
-    Input,
-    EventKeyboard,
-    EventMouse,
-    KeyCode,
-    Vec2,
-    Vec3,
-    Camera,
-    Prefab,
-    instantiate,
-    isValid,
-    math,
-    director,
-    UIOpacity,
-    tween,
-    RigidBody2D,
-    AudioSource,
+import { _decorator, Component, Node, input, Input, EventKeyboard, EventMouse, KeyCode, Vec2, Vec3, Camera, Prefab, instantiate, isValid, math, director, UIOpacity, tween, RigidBody2D, AudioSource,
 } from 'cc';
 import { DataManager } from './DataManager';
+import { GameController, GameState } from './GameController';
 const { ccclass, property } = _decorator;
 
 type RuntimeBullet = {
@@ -67,6 +48,9 @@ export class PlayerController extends Component {
 
     @property({ tooltip: 'Skill cooldown in seconds (right mouse dash).' })
     dashCooldown = 10;
+    
+    @property({ tooltip: 'Maximum dash distance in world units.' })
+    dashDistance = 300;
 
     @property({ tooltip: 'Minimum X world boundary for player movement.' })
     minX = 0;
@@ -137,6 +121,7 @@ export class PlayerController extends Component {
     }
 
     update(deltaTime: number) {
+        if (GameController.currentState !== GameState.PLAYING) return;
         if (!this._isAlive) {
             this.updateRuntimeBullets(deltaTime);
             return;
@@ -213,9 +198,7 @@ export class PlayerController extends Component {
     }
 
     private onMouseDown(event: EventMouse) {
-        if (director.isPaused()) {
-            return;
-        }
+        if (GameController.currentState !== GameState.PLAYING) return;
         this.setAimFromScreen(event.getLocationX(), event.getLocationY());
 
         if (!this._isAlive) {
@@ -310,7 +293,6 @@ export class PlayerController extends Component {
             }
 
             if (canPlaySound) {
-                console.log("=> Bắt đầu phát âm thanh nổ!");
                 audioSource.play();
             }
         }
@@ -408,14 +390,34 @@ export class PlayerController extends Component {
         }
 
         const current = this.node.worldPosition;
-        const nextX = math.clamp(this._mouseWorldPos.x, this.minX, this.maxX);
-        const nextY = math.clamp(this._mouseWorldPos.y, this.minY, this.maxY);
+        
+        // Tính toán vector hướng từ nhân vật đến vị trí chuột
+        let dirX = this._mouseWorldPos.x - current.x;
+        let dirY = this._mouseWorldPos.y - current.y;
+        
+        const len = Math.sqrt(dirX * dirX + dirY * dirY);
+        
+        // Cú lướt sẽ là: hướng chuột * khoảng cách (giới hạn bởi dashDistance)
+        // Nếu chuột click gần hơn dashDistance thì lướt tới chuột, còn xa hơn thì chỉ lướt đúng dashDistance
+        let actualDashDist = Math.min(len, this.dashDistance);
+        
+        let targetX = current.x;
+        let targetY = current.y;
+        
+        if (len > 0) {
+            targetX = current.x + (dirX / len) * actualDashDist;
+            targetY = current.y + (dirY / len) * actualDashDist;
+        }
+
+        // Kẹp lại vào ranh giới màn hình để không lướt ra ngoài map
+        const nextX = math.clamp(targetX, this.minX + this.sizePlayer / 2, this.maxX - this.sizePlayer / 2);
+        const nextY = math.clamp(targetY, this.minY + this.sizePlayer / 2, this.maxY - this.sizePlayer / 2);
         const target = new Vec3(nextX, nextY, current.z);
 
         const dashTime = 0.5;
 
         tween(this.node)
-            .to(dashTime, { worldPosition: target })
+            .to(dashTime, { worldPosition: target }, { easing: 'cubicOut' }) // Thêm easing để lướt có lực cản
             .start();
 
         this._dashTimer = this.dashCooldown;

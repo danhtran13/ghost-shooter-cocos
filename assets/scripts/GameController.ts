@@ -3,8 +3,17 @@ import { Monster } from './Monster';
 import { Minimap } from './Minimap';
 const { ccclass, property } = _decorator;
 
+export enum GameState {
+    MENU,
+    PLAYING,
+    GAME_OVER
+}
+
 @ccclass('GameController')
 export class GameController extends Component {
+    public static currentState: GameState = GameState.MENU;
+    public static isRestarting = false;
+
     @property({ type: Node })
     playerNode: Node | null = null;
 
@@ -48,6 +57,7 @@ export class GameController extends Component {
     }
 
     update(deltaTime: number) {
+        if (GameController.currentState !== GameState.PLAYING) return;
         if (!this.monsterPrefab || !this.playerNode || !this.healthItemPrefab) return;
 
         this._spawnMonsterTimer -= deltaTime;
@@ -60,7 +70,6 @@ export class GameController extends Component {
             this.spawnHealthItem();
             this._spawnHealthItemTimer = this.spawnHealthItemInterval;
         }
-
     }
 
     private spawnMonster() {
@@ -95,18 +104,6 @@ export class GameController extends Component {
 
         monsterNode.setParent(this.monsterRoot || this.node);
         monsterNode.setWorldPosition(spawnX, spawnY, 0);
-
-        if (Minimap.instance) Minimap.instance.registerMonster(monsterNode);
-
-        // Truyền thông tin Player cho Monster bằng cách getComponent
-        const monsterScript = monsterNode.getComponent(Monster);
-        if (monsterScript) {
-            monsterScript.player = this.playerNode;
-            monsterScript.minX = this.minX;
-            monsterScript.maxX = this.maxX;
-            monsterScript.minY = this.minY;
-            monsterScript.maxY = this.maxY;
-        }
     }
 
     private spawnHealthItem() {
@@ -124,8 +121,5 @@ export class GameController extends Component {
              healthItemNode.setParent(this.monsterRoot || this.node);
         }
         healthItemNode.setWorldPosition(spawnX, spawnY, 0);
-        if (Minimap.instance) Minimap.instance.registerHealthItem(healthItemNode);
     }
 }
-
-
