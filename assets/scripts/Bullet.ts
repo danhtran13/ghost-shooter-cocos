@@ -5,5 +5,3 @@ const { ccclass, property } = _decorator;
 export class Bullet extends Component {
     public isHit: boolean = false;
 }
-
-
