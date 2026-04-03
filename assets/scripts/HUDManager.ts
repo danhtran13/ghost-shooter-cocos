@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, Label, director, ProgressBar, UIOpacity } from 'cc';
 import { PlayerController } from './PlayerController';
-import { GameController, GameState } from './GameController';
+import { GameController } from './GameController';
+import { GameState } from './utils/GameConfig';
 const { ccclass, property } = _decorator;
 
 @ccclass('HUDManager')
@@ -144,22 +145,18 @@ export class HUDManager extends Component {
     }
 
     updateSkillCooldown(currentCooldown: number, maxCooldown: number) {
-        // 1. Cập nhật Text thời gian đếm ngược
         if (this.skillCooldownLabel) {
             if (currentCooldown > 0) {
                 // Hiển thị 1 chữ số thập phân, ví dụ "9.5"
-                this.skillCooldownLabel.string = currentCooldown.toFixed(1);
+                const secondsLeft = currentCooldown > 1 ? Math.floor(currentCooldown % 60) : currentCooldown.toFixed(1);
+                this.skillCooldownLabel.string = `${secondsLeft}s`;
             } else {
                 this.skillCooldownLabel.string = ""; // Xong cooldown thì xoá chữ đi
             }
         }
 
-        // 2. Cập nhật độ mờ (Opacity) của Icon skill
         if (this.skillIconNode) {
-            // Lấy component UIOpacity, nếu chưa có thì tải từ @cc ở đầu file
             let uiOpacity = this.skillIconNode.getComponent(UIOpacity);
-            // Nếu đang trong thời gian hồi -> Cho mờ đi (VD: mức 100/255)
-            // Nếu hồi xong (current = 0) -> Sáng hoàn toàn (255/255)
             if (uiOpacity) {
                 uiOpacity.opacity = currentCooldown > 0 ? 100 : 255;
             }

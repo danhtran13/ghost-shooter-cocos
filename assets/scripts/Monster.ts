@@ -2,6 +2,7 @@ import { _decorator, Component, Node, Vec3, math, Collider2D, Contact2DType, IPh
 import { PlayerController } from './PlayerController';
 import { Bullet } from './Bullet';
 import { Minimap } from './Minimap';
+import { PHYSICS_GROUP } from './utils/GameConfig';
 const { ccclass, property } = _decorator;
 const RAD_TO_DEG = 180 / Math.PI;
 
@@ -61,11 +62,11 @@ export class Monster extends Component {
     update(deltaTime: number) {
         if (this._isDead) return;
 
-        // Bấm giờ: Mỗi 5 giây sẽ tăng tốc độ di chuyển thêm 10
+        // Bấm giờ: Mỗi 3 giây sẽ tăng tốc độ di chuyển thêm 20
         this._speedUpTimer += deltaTime;
-        if (this._speedUpTimer >= 5) {
-            this.moveSpeed += 10;
-            this._speedUpTimer -= 5; // Reset lại bộ đếm bớt đi 5s
+        if (this._speedUpTimer >= 3) {
+            this.moveSpeed += 20;
+            this._speedUpTimer -= 3; // Reset lại bộ đếm bớt đi 3s
         }
 
         const pos = this.node.worldPosition;
@@ -140,7 +141,7 @@ export class Monster extends Component {
         if (this._isDead) return;
 
         // Nếu va chạm trúng Đạn (Cần đặt Group hoặc TAG bên Editor để phân biệt đạn, ví dụ: nhóm "Bullet")
-        if (otherCollider.node.name.toLowerCase().includes("bullet")) {
+        if (otherCollider.group === PHYSICS_GROUP.BULLET) {
             let bulletScript = otherCollider.node.getComponent(Bullet);
             if (bulletScript) {
                 if (bulletScript.isHit) return;
@@ -149,7 +150,7 @@ export class Monster extends Component {
             }
 
             // Lên lịch xoá đạn (tránh lỗi vật lý trong cùng block frame)
-            setTimeout(() => {
+            this.scheduleOnce(() => {
                 if (otherCollider.node && otherCollider.node.isValid) {
                     // Spawn hiệu ứng nổ tại vị trí viên đạn
                     if (this.explosionPrefab && this._currentHealth > 0) {
@@ -165,8 +166,7 @@ export class Monster extends Component {
             }, 0);
         }
 
-        // Nếu va chạm trúng Player (Ví dụ bạn đặt tên node là "Player")
-        if (otherCollider.node.name.toLowerCase() === "player" || otherCollider.node.name.toLowerCase().includes("player")) {
+        if (otherCollider.group === PHYSICS_GROUP.PLAYER) {
             // console.log("=> Monster đã tông trúng Player! Trừ máu Player."); // DEBUG
             const playerScript = otherCollider.node.getComponent(PlayerController);
             if (playerScript) {
@@ -179,8 +179,6 @@ export class Monster extends Component {
 
     takeDamage(amount: number) {
         this._currentHealth -= amount;
-
-        // Bạn có thể thêm animation nháy đỏ khi bị trúng đạn ở đây
 
         if (this._currentHealth <= 0) {
             // Khi quái hết máu do bị bắn -> Phát sự kiện cộng điểm toàn cục
@@ -195,7 +193,7 @@ export class Monster extends Component {
 
         // Cần đưa vào setTimeout để tránh xoá RigidBody/Collider 
         // ngay trong lúc hệ thống vật lý đang tính toán va chạm
-        setTimeout(() => {
+        this.scheduleOnce(() => {
             if (this.node && this.node.isValid) {
                 // Disable Collider tránh gây thêm damage dư thừa
                 const collider = this.getComponent(Collider2D);

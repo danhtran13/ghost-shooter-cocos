@@ -21,4 +21,4 @@ A fast-paced 2D top-down survival shooter game built with **Cocos Creator** and 
 - **Right Click** Skill Dash
 
 ## 🚀 Play Demo
-👉 **[Play the demo here](https://ubiquitous-peony-0d91b8.netlify.app/)**
+👉 **[Play the demo here](https://ghost-shooter.dtc.io.vn/)**

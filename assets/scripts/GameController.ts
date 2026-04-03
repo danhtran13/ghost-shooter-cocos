@@ -1,13 +1,8 @@
 import { _decorator, Component, Node, Prefab, instantiate, math, director } from 'cc';
-import { Monster } from './Monster';
+import { GameState } from './utils/GameConfig';
 import { Minimap } from './Minimap';
+import { Monster } from './Monster';
 const { ccclass, property } = _decorator;
-
-export enum GameState {
-    MENU,
-    PLAYING,
-    GAME_OVER
-}
 
 @ccclass('GameController')
 export class GameController extends Component {
@@ -52,7 +47,7 @@ export class GameController extends Component {
         this._spawnHealthItemTimer = this.spawnHealthItemInterval;
 
         if (this.playerNode && Minimap.instance) {
-             Minimap.instance.registerPlayer(this.playerNode);
+            Minimap.instance.registerPlayer(this.playerNode);
         }
     }
 
@@ -76,6 +71,10 @@ export class GameController extends Component {
         if (!this.monsterPrefab) return;
 
         const monsterNode = instantiate(this.monsterPrefab);
+        const monsterScript = monsterNode.getComponent(Monster);
+        if (monsterScript) {
+            monsterScript.moveSpeed += 50;
+        }
 
         // Random toạ độ sinh quái xung quanh viền màn hình (Hoặc góc Map)
         let edge = math.randomRangeInt(0, 4); // 0=Top, 1=Right, 2=Bottom, 3=Left
@@ -116,9 +115,9 @@ export class GameController extends Component {
         const spawnY = math.randomRange(this.minY + 50, this.maxY - 50);
 
         if (this.playerNode && this.playerNode.parent) {
-             healthItemNode.setParent(this.playerNode.parent);
+            healthItemNode.setParent(this.playerNode.parent);
         } else {
-             healthItemNode.setParent(this.monsterRoot || this.node);
+            healthItemNode.setParent(this.monsterRoot || this.node);
         }
         healthItemNode.setWorldPosition(spawnX, spawnY, 0);
     }

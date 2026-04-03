@@ -1,7 +1,8 @@
-import { _decorator, Component, Node, director, SpriteFrame, Button, Label, game, Game } from 'cc';
+import { _decorator, Component, Node, director, SpriteFrame, Button, Label, UIOpacity } from 'cc';
 import { DataManager } from './DataManager';
 import { HUDManager } from './HUDManager';
-import { GameController, GameState } from './GameController';
+import { GameController } from './GameController';
+import { GameState } from './utils/GameConfig';
 const { ccclass, property } = _decorator;
 
 @ccclass('MenuManager')
@@ -18,15 +19,24 @@ export class MenuManager extends Component {
     @property(Button)
     soundButton: Button | null = null;
 
+    @property(Button)
+    resetBestScoreButton: Button | null = null;
+
     @property(SpriteFrame)
     soundOnSprite: SpriteFrame | null = null;
 
     @property(SpriteFrame)
     soundOffSprite: SpriteFrame | null = null;
 
+    @property(SpriteFrame)
+    resetActiveSprite: SpriteFrame | null = null;
+
+    @property(SpriteFrame)
+    resetInactiveSprite: SpriteFrame | null = null;
+
     @property(Label)
     bestScoreLabel: Label | null = null;
-    
+
     @property(Label)
     resultLabel: Label | null = null;
 
@@ -45,7 +55,7 @@ export class MenuManager extends Component {
         this.updateSoundButtonUI();
 
         this.updateBestScoreText();
-        
+
         // Lắng nghe sự kiện người chơi chết để bật Game Over
         // Bạn cần đảm bảo Player phát ra sự kiện này khi máu <= 0
         director.on('player-died', this.showGameOver, this);
@@ -93,7 +103,7 @@ export class MenuManager extends Component {
             if (DataManager.instance) {
                 DataManager.instance.updateBestScore(finalScore);
                 // Cập nhật lại UI Best Score trên màn hình Game Over
-                this.updateBestScoreText(); 
+                this.updateBestScoreText();
             }
         }
 
@@ -114,14 +124,29 @@ export class MenuManager extends Component {
     }
 
     updateSoundButtonUI() {
-        // console.log("Cập nhật UI nút âm thanh. Sound đang:", DataManager.instance?.isSoundOn ? "Bật" : "Tắt");
         if (!this.soundButton || !DataManager.instance) return;
-        
+
         // Đổi hình ảnh trên nút tuỳ thuộc vào trạng thái âm thanh từ DataManager
         if (DataManager.instance.isSoundOn) {
             this.soundButton.normalSprite = this.soundOnSprite;
         } else {
             this.soundButton.normalSprite = this.soundOffSprite;
+        }
+    }
+
+    updateResetButtonUI() {
+        if (!this.resetBestScoreButton || !DataManager.instance) return;
+
+        let uiOpacity = this.resetBestScoreButton.getComponent(UIOpacity);
+        if (uiOpacity) {
+            if (this.resetBestScoreButton.normalSprite == this.resetActiveSprite) {
+                return;
+            } else {
+                this.resetBestScoreButton.normalSprite = this.resetActiveSprite;
+                setTimeout(() => {
+                    this.resetBestScoreButton.normalSprite = this.resetInactiveSprite;
+                }, 1000);
+            }
         }
     }
 
@@ -131,7 +156,7 @@ export class MenuManager extends Component {
             // console.log("Nút âm thanh được bấm. Đang chuyển trạng thái...");
             // Thay đổi trạng thái thực và lưu xuống hệ thống
             DataManager.instance.toggleSound();
-            
+
             // Cập nhật lại hình ảnh của nút bấm cho khớp
             this.updateSoundButtonUI();
         }
@@ -139,7 +164,7 @@ export class MenuManager extends Component {
 
     updateBestScoreText() {
         if (DataManager.instance) {
-            console.log("Cập nhật UI điểm cao. Điểm cao hiện tại:", DataManager.instance.bestScore);
+            // console.log("Cập nhật UI điểm cao. Điểm cao hiện tại:", DataManager.instance.bestScore);
             let bestScore = DataManager.instance.bestScore;
             if (this.bestScoreLabel) {
                 this.bestScoreLabel.string = `Best Score: ${bestScore}`;
@@ -151,6 +176,7 @@ export class MenuManager extends Component {
         if (DataManager.instance) {
             DataManager.instance.resetBestScore();
             this.updateBestScoreText();
+            this.updateResetButtonUI();
         }
     }
 }
