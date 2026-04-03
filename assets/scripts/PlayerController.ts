@@ -1,7 +1,9 @@
-import { _decorator, Component, Node, input, Input, EventKeyboard, EventMouse, KeyCode, Vec2, Vec3, Camera, Prefab, instantiate, isValid, math, director, UIOpacity, tween, RigidBody2D, AudioSource,
+import { _decorator, Component, Node, input, Input, EventKeyboard, EventMouse, KeyCode, Vec2, Vec3, Camera, Prefab, instantiate, isValid, math, director, UIOpacity, tween, RigidBody2D, AudioSource, Label,
 } from 'cc';
 import { DataManager } from './DataManager';
-import { GameController, GameState } from './GameController';
+import { GameController } from './GameController';
+import { GameState } from './utils/GameConfig';
+import { StatusHealth } from './StatusHeal';
 const { ccclass, property } = _decorator;
 
 type RuntimeBullet = {
@@ -18,6 +20,9 @@ export class PlayerController extends Component {
 
     @property(Node)
     gunPoint: Node | null = null;
+
+    @property({ type: StatusHealth, tooltip: 'Floating text to display player status health information.' })
+    statusHealth: StatusHealth | null = null;
 
     @property({ type: Prefab, tooltip: 'Bullet prefab to spawn on left click.' })
     bulletPrefab: Prefab | null = null;
@@ -148,6 +153,7 @@ export class PlayerController extends Component {
         this._health = Math.max(0, this._health - amount);
         this.node.emit('player-hit', amount);
         this.node.emit('player-health-changed', this._health, this.maxHealth);
+        this.node.emit('show-heal-status', amount, false);
 
         if (this._health <= 0) {
             this.die();
@@ -172,6 +178,7 @@ export class PlayerController extends Component {
 
         this._health = Math.min(this.maxHealth, this._health + amount);
         this.node.emit('player-health-changed', this._health, this.maxHealth);
+        this.node.emit('show-heal-status', amount, true);
     }
 
     resetPlayerState() {
@@ -461,8 +468,10 @@ export class PlayerController extends Component {
             return;
         }
         this._isAlive = false;
-        this.node.emit('player-died');
-        director.emit('player-died'); // Phát thêm qua director để các Manager khác bắt được
+        this.scheduleOnce(() => {
+            this.node.emit('player-died');
+            director.emit('player-died'); // Phát thêm qua director để các Manager khác bắt được
+        }, 0); // Delay để đảm bảo các logic sau khi chết vẫn chạy trong frame này (như hiện hiệu ứng, âm thanh) rồi mới thông báo chết hẳn để GameController chuyển state
     }
 
     private emitState() {
